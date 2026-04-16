@@ -136,6 +136,11 @@
             <p class="hint">
               Use a Python-like subset with indentation, variables, `def` functions, `return`, `for i in range(...)`, `while`, `if`, `elif`, `else`, `arr[index]` reads and writes, `.append()`, `.pop()`, `len(...)`, `sleep(ms)`, `log(...)`, and visualization helpers when you want explicit animation control.
             </p>
+            <div class="tip-box">
+              <strong>To visualize your custom code:</strong>
+              use `compare(i, j)`, `swap(i, j)`, `write(i, value)`, `mark_sorted(i)`, and `sleep(ms)`.
+              Plain dictionary/list processing runs, but it will not animate until you call these helper functions against the main array.
+            </div>
           </div>
 
           <textarea id="codeEditor" spellcheck="false">def bubble_pass(limit):
