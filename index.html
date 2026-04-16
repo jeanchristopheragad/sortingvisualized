@@ -97,20 +97,33 @@
           <div class="info-grid">
             <article class="info-card">
               <h3 id="algorithmGuideTitle">Quick Sort</h3>
-              <p id="algorithmGuideDescription" class="hint"></p>
+              <p id="algorithmGuideDescription" class="hint">Quick Sort picks a pivot, partitions values into smaller and larger sides, then recursively sorts each side.</p>
               <div class="info-pills">
-                <span class="info-pill" id="algorithmGuideComplexity"></span>
-                <span class="info-pill" id="algorithmGuideCategory"></span>
+                <span class="info-pill" id="algorithmGuideComplexity">Complexity: Avg O(n log n), Worst O(n^2)</span>
+                <span class="info-pill" id="algorithmGuideCategory">Type: Divide and Conquer</span>
               </div>
               <div>
                 <h4 class="subheading">Process</h4>
-                <p id="algorithmGuideProcess" class="hint"></p>
+                <p id="algorithmGuideProcess" class="hint">This visualizer uses the last element as the pivot, scans the range, swaps smaller values forward, then places the pivot into its final index.</p>
               </div>
             </article>
 
             <article class="info-card">
               <h4 class="subheading">Visible Function / Process</h4>
-              <pre id="algorithmGuideCode" class="code-block"></pre>
+              <pre id="algorithmGuideCode" class="code-block">async function quickSortRecursive(low, high) {
+  if (low >= high) return;
+  const pivot = arr[high];
+  let i = low;
+  for (let j = low; j &lt; high; j += 1) {
+    if (arr[j] &lt; pivot) {
+      swap(i, j);
+      i += 1;
+    }
+  }
+  swap(i, high);
+  await quickSortRecursive(low, i - 1);
+  await quickSortRecursive(i + 1, high);
+}</pre>
             </article>
           </div>
         </section>

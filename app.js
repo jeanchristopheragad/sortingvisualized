@@ -444,14 +444,15 @@ function updateStatus(message) {
 function updateAlgorithmGuide(name = state.currentAlgorithm, mode = "reviewing") {
   const detail = algorithmDetails[name] || algorithmDetails["Custom Python"];
   const statusVerb = mode === "running" ? "Executing" : mode === "custom" ? "Editing" : "Reviewing";
-  const code = name === "Custom Python" ? elements.codeEditor.value : detail.code;
+  const fallback = algorithmDetails["Quick Sort"];
+  const code = name === "Custom Python" ? elements.codeEditor.value : detail.code || fallback.code;
 
   elements.algorithmGuideStatus.textContent = `${statusVerb} ${name}.`;
   elements.algorithmGuideTitle.textContent = name;
-  elements.algorithmGuideDescription.textContent = detail.description;
-  elements.algorithmGuideComplexity.textContent = `Complexity: ${detail.complexity}`;
-  elements.algorithmGuideCategory.textContent = `Type: ${detail.category}`;
-  elements.algorithmGuideProcess.textContent = detail.process;
+  elements.algorithmGuideDescription.textContent = detail.description || fallback.description;
+  elements.algorithmGuideComplexity.textContent = `Complexity: ${detail.complexity || fallback.complexity}`;
+  elements.algorithmGuideCategory.textContent = `Type: ${detail.category || fallback.category}`;
+  elements.algorithmGuideProcess.textContent = detail.process || fallback.process;
   elements.algorithmGuideCode.textContent = code;
 }
 
@@ -1214,10 +1215,16 @@ function compilePythonLike(source) {
   const lines = source.replace(/\t/g, "    ").split("\n");
   const output = [];
   const stack = [];
+  const scopeStack = [
+    new Set(["arr", "compare", "swap", "write", "markSorted", "sleep", "log", "range", "len"])
+  ];
 
   const closeToIndent = (indent) => {
     while (stack.length > indent) {
-      stack.pop();
+      const frame = stack.pop();
+      if (frame.type === "function") {
+        scopeStack.pop();
+      }
       output.push(`${"    ".repeat(stack.length)}}`);
     }
   };
@@ -1253,7 +1260,14 @@ function compilePythonLike(source) {
     if (/^def\s+\w+\s*\(.*\):$/.test(trimmed)) {
       const [, functionName, args] = trimmed.match(/^def\s+(\w+)\s*\((.*)\):$/);
       output.push(`${pad}async function ${functionName}(${args}) {`);
-      stack.push({ type: "block" });
+      const functionScope = new Set();
+      args
+        .split(",")
+        .map((arg) => arg.trim())
+        .filter(Boolean)
+        .forEach((arg) => functionScope.add(arg));
+      scopeStack.push(functionScope);
+      stack.push({ type: "function" });
       continue;
     }
 
@@ -1302,7 +1316,16 @@ function compilePythonLike(source) {
       throw new Error(`Compiler Error on line ${lineNumber + 1}: unsupported block syntax.`);
     }
 
-    const statement = transformExpression(trimmed);
+    let statement = transformExpression(trimmed);
+    const assignmentMatch = trimmed.match(/^([A-Za-z_]\w*)\s*=(?!=)(.+)$/);
+    if (assignmentMatch) {
+      const variableName = assignmentMatch[1];
+      const currentScope = scopeStack[scopeStack.length - 1];
+      if (!currentScope.has(variableName)) {
+        currentScope.add(variableName);
+        statement = `var ${statement}`;
+      }
+    }
 
     output.push(`${pad}${statement};`);
   }
