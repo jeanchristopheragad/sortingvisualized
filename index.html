@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sorting Visualizer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <div>
+        <h1>Sorting Visualizer Lab</h1>
+        <p>
+          Generate arrays, paste your own data, compare 20 sorting algorithms, and experiment with a simulated Python-style sandbox that animates each operation in real time.
+        </p>
+      </div>
+    </section>
+
+    <section class="layout">
+      <aside class="panel controls">
+        <div class="grid">
+          <div>
+            <h2 class="section-title">Array Setup</h2>
+          </div>
+          <div class="range-grid">
+            <div class="field">
+              <label for="arraySize">Size</label>
+              <input id="arraySize" type="number" min="5" max="120" value="36" />
+            </div>
+            <div class="field">
+              <label for="rangeMin">Min</label>
+              <input id="rangeMin" type="number" value="5" />
+            </div>
+            <div class="field">
+              <label for="rangeMax">Max</label>
+              <input id="rangeMax" type="number" value="180" />
+            </div>
+          </div>
+          <button id="generateBtn" class="btn-primary">Generate Random Array</button>
+          <div class="field">
+            <label for="manualArray">Manual Array (comma-separated)</label>
+            <input id="manualArray" type="text" placeholder="18, 4, 29, 11, 7, 33" />
+          </div>
+          <button id="applyManualBtn" class="btn-neutral">Apply Manual Array</button>
+        </div>
+
+        <div class="grid">
+          <div>
+            <h2 class="section-title">Algorithm</h2>
+          </div>
+          <div class="field">
+            <label for="algorithmSelect">Choose Sorting Algorithm</label>
+            <select id="algorithmSelect"></select>
+          </div>
+          <div class="transport-row">
+            <button id="playBtn" class="btn-success">Play</button>
+            <button id="pauseBtn" class="btn-warning">Pause</button>
+          </div>
+          <div class="field">
+            <label for="speedSlider">Speed: <span id="speedValue">60 ms</span></label>
+            <input id="speedSlider" type="range" min="5" max="250" value="60" />
+          </div>
+          <div class="value-pill" id="metaDisplay">Array Length: 36</div>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <section class="panel visualizer">
+          <div class="status-row">
+            <div>
+              <h2 class="section-title">Visualizer</h2>
+              <div class="status-text" id="statusText">Ready. Generate an array or start sorting.</div>
+            </div>
+            <div class="legend">
+              <div class="legend-item"><span class="swatch" style="background:#2563eb"></span>Default</div>
+              <div class="legend-item"><span class="swatch" style="background:#dc2626"></span>Comparing / Swapping</div>
+              <div class="legend-item"><span class="swatch" style="background:#f97316"></span>Writing</div>
+              <div class="legend-item"><span class="swatch" style="background:#16a34a"></span>Sorted</div>
+            </div>
+          </div>
+
+          <div class="visualizer-canvas">
+            <div id="bars" class="bars"></div>
+          </div>
+        </section>
+
+        <section class="panel editor-shell">
+          <div>
+            <h2 class="section-title">Custom Python Sandbox</h2>
+            <p class="hint">
+              Use a Python-like subset with indentation, `for i in range(...)`, `while`, `if`, `elif`, `else`, `swap(i, j)`, `compare(i, j)`, `write(i, value)`, `mark_sorted(i)`, `sleep(ms)`, `log(...)`, and direct `arr[index]` access.
+            </p>
+          </div>
+
+          <textarea id="codeEditor" spellcheck="false">n = len(arr)
+for i in range(n):
+    for j in range(0, n - i - 1):
+        if compare(j, j + 1) > 0:
+            swap(j, j + 1)
+
+for i in range(n):
+    mark_sorted(i)
+log("Custom code finished.")</textarea>
+
+          <div class="editor-actions">
+            <button id="runCustomBtn" class="btn-primary">Run Custom Code</button>
+            <span class="status-text">Compiler errors and runtime messages appear in the console below.</span>
+          </div>
+
+          <div id="consoleOutput" class="console">[info] Console ready.</div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
