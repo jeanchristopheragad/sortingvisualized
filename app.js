@@ -21,6 +21,272 @@ const algorithmNames = [
   "Library Sort"
 ];
 
+const algorithmDetails = {
+  "Quick Sort": {
+    category: "Divide and Conquer",
+    complexity: "Avg O(n log n), Worst O(n^2)",
+    description: "Quick Sort picks a pivot, partitions values into smaller and larger sides, then recursively sorts each side.",
+    process: "This visualizer uses the last element as the pivot, scans the range, swaps smaller values forward, then places the pivot into its final index.",
+    code: `async function quickSortRecursive(low, high) {
+  if (low >= high) return;
+  const pivot = arr[high];
+  let i = low;
+  for (let j = low; j < high; j += 1) {
+    if (arr[j] < pivot) {
+      swap(i, j);
+      i += 1;
+    }
+  }
+  swap(i, high);
+  await quickSortRecursive(low, i - 1);
+  await quickSortRecursive(i + 1, high);
+}`
+  },
+  "Merge Sort": {
+    category: "Divide and Conquer",
+    complexity: "O(n log n)",
+    description: "Merge Sort repeatedly splits the array into halves, sorts each half, then merges them back in order.",
+    process: "The animation writes merged values back into the main array one slot at a time, so you can see the reconstruction phase clearly.",
+    code: `async function mergeSortRecursive(left, right) {
+  if (left >= right) return;
+  const mid = Math.floor((left + right) / 2);
+  await mergeSortRecursive(left, mid);
+  await mergeSortRecursive(mid + 1, right);
+  await merge(left, mid, right);
+}`
+  },
+  Timsort: {
+    category: "Hybrid Stable Sort",
+    complexity: "O(n log n)",
+    description: "Timsort combines insertion sort on small runs with merge sort on larger merged runs.",
+    process: "This implementation sorts short chunks first, then repeatedly merges neighboring runs into bigger sorted regions.",
+    code: `const RUN = 16;
+for (let i = 0; i < arr.length; i += RUN) {
+  await insertionSortRange(i, Math.min(i + RUN - 1, arr.length - 1));
+}
+for (let size = RUN; size < arr.length; size *= 2) {
+  // merge adjacent runs
+}`
+  },
+  "Heap Sort": {
+    category: "Selection via Heap",
+    complexity: "O(n log n)",
+    description: "Heap Sort first turns the array into a max-heap, then repeatedly moves the largest value to the end.",
+    process: "You see heap maintenance swaps as the root is exchanged with the end of the active heap and the heap is rebuilt.",
+    code: `async function heapSort() {
+  buildMaxHeap(arr);
+  for (let end = arr.length - 1; end > 0; end -= 1) {
+    swap(0, end);
+    await heapify(end, 0);
+  }
+}`
+  },
+  "Bubble Sort": {
+    category: "Exchange Sort",
+    complexity: "O(n^2)",
+    description: "Bubble Sort compares neighbors and swaps them whenever they are out of order, pushing larger values rightward.",
+    process: "Each pass bubbles the largest remaining unsorted value to the far right, so the sorted suffix grows one bar at a time.",
+    code: `for (let i = 0; i < n; i += 1) {
+  for (let j = 0; j < n - i - 1; j += 1) {
+    if (compare(j, j + 1) > 0) {
+      swap(j, j + 1);
+    }
+  }
+}`
+  },
+  "Insertion Sort": {
+    category: "Incremental Sort",
+    complexity: "O(n^2)",
+    description: "Insertion Sort grows a sorted left side by inserting each new value into its proper position.",
+    process: "The current value is held aside while larger items shift right until the insertion slot is found.",
+    code: `for (let i = 1; i < arr.length; i += 1) {
+  const current = arr[i];
+  let j = i - 1;
+  while (j >= 0 && arr[j] > current) {
+    write(j + 1, arr[j]);
+    j -= 1;
+  }
+  write(j + 1, current);
+}`
+  },
+  "Selection Sort": {
+    category: "Selection Sort",
+    complexity: "O(n^2)",
+    description: "Selection Sort repeatedly finds the minimum remaining value and places it at the next sorted position.",
+    process: "Each outer pass scans for the smallest unsorted element, then swaps it into place on the left.",
+    code: `for (let i = 0; i < n; i += 1) {
+  let minIndex = i;
+  for (let j = i + 1; j < n; j += 1) {
+    if (compare(j, minIndex) < 0) minIndex = j;
+  }
+  swap(i, minIndex);
+}`
+  },
+  "Radix Sort": {
+    category: "Non-Comparative Sort",
+    complexity: "O(d(n + k))",
+    description: "Radix Sort orders integers digit by digit, from least significant to most significant position.",
+    process: "This version runs counting sort on each digit place so values regroup by ones, tens, hundreds, and so on.",
+    code: `for (let exp = 1; Math.floor(max / exp) > 0; exp *= 10) {
+  await radixCountingSort(exp);
+}`
+  },
+  "Counting Sort": {
+    category: "Non-Comparative Sort",
+    complexity: "O(n + k)",
+    description: "Counting Sort counts how many times each value occurs, then reconstructs the array in order.",
+    process: "The algorithm builds a frequency table, then writes values back from the smallest bucket to the largest.",
+    code: `const count = Array(max - min + 1).fill(0);
+for (const value of arr) count[value - min] += 1;
+for (let value = min; value <= max; value += 1) {
+  while (count[value - min] > 0) {
+    write(index, value);
+  }
+}`
+  },
+  "Bucket Sort": {
+    category: "Distribution Sort",
+    complexity: "Avg O(n + k)",
+    description: "Bucket Sort distributes values into ranges, sorts each bucket, then concatenates them.",
+    process: "The array is split into sqrt-sized groups, each bucket is sorted internally, then everything is written back in bucket order.",
+    code: `const buckets = Array.from({ length: bucketCount }, () => []);
+for (const value of arr) {
+  const bucketIndex = mapToBucket(value);
+  buckets[bucketIndex].push(value);
+}
+for (const bucket of buckets) {
+  bucket.sort((a, b) => a - b);
+}`
+  },
+  "Shell Sort": {
+    category: "Gap-Based Insertion Sort",
+    complexity: "Depends on gaps",
+    description: "Shell Sort performs insertion sort across shrinking gaps, reducing disorder before the final pass.",
+    process: "Large gaps move distant values quickly, and smaller gaps finish the nearly sorted array efficiently.",
+    code: `let gap = Math.floor(arr.length / 2);
+while (gap > 0) {
+  for (let i = gap; i < arr.length; i += 1) {
+    // gap-based insertion
+  }
+  gap = Math.floor(gap / 2);
+}`
+  },
+  Introsort: {
+    category: "Hybrid Sort",
+    complexity: "O(n log n)",
+    description: "Introsort starts like quick sort, but switches strategies when recursion gets too deep.",
+    process: "This version uses quick-sort-style partitioning, insertion sort for small regions, and a safe fallback when depth reaches its limit.",
+    code: `if (size <= 16) insertionSortRange(start, end);
+else if (depthLimit === 0) fallbackSortSlice(start, end);
+else {
+  const pivotIndex = partition(start, end);
+  introsort(leftSide);
+  introsort(rightSide);
+}`
+  },
+  "Cocktail Shaker Sort": {
+    category: "Bidirectional Exchange Sort",
+    complexity: "O(n^2)",
+    description: "Cocktail Shaker Sort is bubble sort in both directions, moving large values right and small values left.",
+    process: "A forward pass pushes the maximum to the end, then a backward pass pulls the minimum to the front.",
+    code: `while (swapped) {
+  // left to right
+  // right to left
+}`
+  },
+  "Gnome Sort": {
+    category: "Exchange Sort",
+    complexity: "O(n^2)",
+    description: "Gnome Sort walks forward when order is correct and steps backward to swap when it finds an inversion.",
+    process: "It behaves like a tiny gardener repeatedly moving misplaced items back until they fit.",
+    code: `let index = 0;
+while (index < arr.length) {
+  if (index === 0 || arr[index] >= arr[index - 1]) index += 1;
+  else swap(index, index - 1), index -= 1;
+}`
+  },
+  "Comb Sort": {
+    category: "Gap Exchange Sort",
+    complexity: "Avg O(n^2 / 2^p)",
+    description: "Comb Sort improves bubble sort by first comparing far-apart elements with a shrinking gap.",
+    process: "Large inversions are removed early with wide jumps, then the gap shrinks down to 1 for a finishing pass.",
+    code: `let gap = arr.length;
+while (gap > 1 || swapped) {
+  gap = Math.max(1, Math.floor(gap / 1.3));
+  for (let i = 0; i + gap < arr.length; i += 1) {
+    if (compare(i, i + gap) > 0) swap(i, i + gap);
+  }
+}`
+  },
+  "Tree Sort": {
+    category: "Tree-Based Sort",
+    complexity: "Avg O(n log n)",
+    description: "Tree Sort inserts values into a binary-search-ordered structure, then reads them back in-order.",
+    process: "This visualizer emulates the ordered insert-and-readback behavior by maintaining a growing sorted container.",
+    code: `const values = [];
+for (const value of arr) {
+  values.push(value);
+  values.sort((a, b) => a - b);
+}
+writeBack(values);`
+  },
+  "Cycle Sort": {
+    category: "Minimizes Writes",
+    complexity: "O(n^2)",
+    description: "Cycle Sort rotates each value directly into its final position, minimizing the number of writes.",
+    process: "For each cycle start, the algorithm counts how many smaller values exist, places the item, then continues the cycle until it closes.",
+    code: `for (let cycleStart = 0; cycleStart < n - 1; cycleStart += 1) {
+  let item = arr[cycleStart];
+  let pos = findFinalPosition(item);
+  while (pos !== cycleStart) {
+    place item and continue cycle;
+  }
+}`
+  },
+  "Patience Sorting": {
+    category: "Pile-Based Sort",
+    complexity: "O(n log n)",
+    description: "Patience Sorting places values into piles like a card game, then merges the piles into sorted order.",
+    process: "This version models the key idea with binary insertion into an ordered structure before writing results back.",
+    code: `const sorted = [];
+for (const value of arr) {
+  const index = binarySearchInsertionIndex(sorted, value);
+  sorted.splice(index, 0, value);
+}
+writeBack(sorted);`
+  },
+  "Block Sort": {
+    category: "Hybrid Block Merge Sort",
+    complexity: "Approx O(n log n)",
+    description: "Block Sort divides the array into chunks, sorts each chunk, then merges the partially sorted blocks.",
+    process: "Small blocks are sorted locally first, then a merge phase combines them into a fully ordered array.",
+    code: `const blockSize = Math.floor(Math.sqrt(arr.length));
+for (let i = 0; i < arr.length; i += blockSize) {
+  sortBlock(arr.slice(i, i + blockSize));
+}
+await mergeSort();`
+  },
+  "Library Sort": {
+    category: "Gapped Insertion Sort",
+    complexity: "Avg O(n log n)",
+    description: "Library Sort is an insertion-based strategy that keeps gaps to make future insertions cheaper.",
+    process: "This simplified teaching version uses binary insertion into a helper array, then writes the ordered values back.",
+    code: `const sorted = [];
+for (const value of arr) {
+  const index = binarySearchInsertionIndex(sorted, value);
+  sorted.splice(index, 0, value);
+}
+writeBack(sorted);`
+  },
+  "Custom Python": {
+    category: "User-Defined Logic",
+    complexity: "Depends on your code",
+    description: "The custom sandbox compiles your Python-like code into async JavaScript so it can drive the same animation engine.",
+    process: "Whatever you type in the editor becomes the visible process here, so you can compare your logic with the built-in algorithms.",
+    code: ""
+  }
+};
+
 const state = {
   array: [],
   active: new Set(),
@@ -49,6 +315,13 @@ const elements = {
   speedValue: document.getElementById("speedValue"),
   metaDisplay: document.getElementById("metaDisplay"),
   statusText: document.getElementById("statusText"),
+  algorithmGuideStatus: document.getElementById("algorithmGuideStatus"),
+  algorithmGuideTitle: document.getElementById("algorithmGuideTitle"),
+  algorithmGuideDescription: document.getElementById("algorithmGuideDescription"),
+  algorithmGuideComplexity: document.getElementById("algorithmGuideComplexity"),
+  algorithmGuideCategory: document.getElementById("algorithmGuideCategory"),
+  algorithmGuideProcess: document.getElementById("algorithmGuideProcess"),
+  algorithmGuideCode: document.getElementById("algorithmGuideCode"),
   codeEditor: document.getElementById("codeEditor"),
   runCustomBtn: document.getElementById("runCustomBtn"),
   consoleOutput: document.getElementById("consoleOutput")
@@ -166,6 +439,20 @@ function clamp(value, min, max) {
 function updateStatus(message) {
   elements.statusText.textContent = message;
   elements.metaDisplay.textContent = `Array Length: ${state.array.length}`;
+}
+
+function updateAlgorithmGuide(name = state.currentAlgorithm, mode = "reviewing") {
+  const detail = algorithmDetails[name] || algorithmDetails["Custom Python"];
+  const statusVerb = mode === "running" ? "Executing" : mode === "custom" ? "Editing" : "Reviewing";
+  const code = name === "Custom Python" ? elements.codeEditor.value : detail.code;
+
+  elements.algorithmGuideStatus.textContent = `${statusVerb} ${name}.`;
+  elements.algorithmGuideTitle.textContent = name;
+  elements.algorithmGuideDescription.textContent = detail.description;
+  elements.algorithmGuideComplexity.textContent = `Complexity: ${detail.complexity}`;
+  elements.algorithmGuideCategory.textContent = `Type: ${detail.category}`;
+  elements.algorithmGuideProcess.textContent = detail.process;
+  elements.algorithmGuideCode.textContent = code;
 }
 
 function randomInt(min, max) {
@@ -878,6 +1165,7 @@ async function runAlgorithm(algorithmName) {
   resetHighlights();
   clearConsole();
   beginRun(algorithmName, "built-in algorithm");
+  updateAlgorithmGuide(algorithmName, "running");
   updateStatus(`Running ${algorithmName}...`);
   setControlsDisabled(true);
 
@@ -889,10 +1177,12 @@ async function runAlgorithm(algorithmName) {
     await algorithm();
     await markAllSorted();
     updateStatus(`${algorithmName} completed.`);
+    updateAlgorithmGuide(algorithmName, "reviewing");
     logToConsole(`${algorithmName} completed successfully.`, "success");
     finishRun("completed");
   } catch (error) {
     updateStatus(`${algorithmName} stopped with an error.`);
+    updateAlgorithmGuide(algorithmName, "reviewing");
     logToConsole(error.message, "error");
     finishRun("failed", error.message);
   } finally {
@@ -1064,6 +1354,7 @@ async function runCustomCode() {
   clearConsole();
   state.currentAlgorithm = "Custom Python";
   beginRun("Custom Python", "compiler");
+  updateAlgorithmGuide("Custom Python", "running");
   logToConsole("Compiling custom Python-style code...", "info");
   updateStatus("Running custom Python-style code...");
   setControlsDisabled(true);
@@ -1098,11 +1389,13 @@ async function runCustomCode() {
     await markAllSorted();
     logToConsole("Custom code executed successfully.", "success");
     updateStatus("Custom sandbox run completed.");
+    updateAlgorithmGuide("Custom Python", "custom");
     finishRun("completed");
   } catch (error) {
     const prefix = /Compiler Error/.test(error.message) ? "" : "Compiler Error: ";
     logToConsole(`${prefix}${error.message}`, "error");
     updateStatus("Custom sandbox failed.");
+    updateAlgorithmGuide("Custom Python", "custom");
     finishRun("failed", error.message);
   } finally {
     state.sorting = false;
@@ -1127,7 +1420,13 @@ elements.pauseBtn.addEventListener("click", () => {
 elements.runCustomBtn.addEventListener("click", runCustomCode);
 elements.algorithmSelect.addEventListener("change", (event) => {
   state.currentAlgorithm = event.target.value;
+  updateAlgorithmGuide(state.currentAlgorithm, "reviewing");
   updateStatus(`${state.currentAlgorithm} selected.`);
+});
+elements.codeEditor.addEventListener("input", () => {
+  if (state.currentAlgorithm === "Custom Python") {
+    updateAlgorithmGuide("Custom Python", "custom");
+  }
 });
 elements.speedSlider.addEventListener("input", (event) => {
   state.delay = Number(event.target.value);
@@ -1137,3 +1436,4 @@ elements.speedSlider.addEventListener("input", (event) => {
 generateRandomArray();
 elements.speedValue.textContent = `${state.delay} ms`;
 elements.algorithmSelect.value = "Quick Sort";
+updateAlgorithmGuide("Quick Sort", "reviewing");
