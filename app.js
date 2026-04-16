@@ -29,7 +29,8 @@ const state = {
   delay: 60,
   paused: false,
   sorting: false,
-  currentAlgorithm: "Quick Sort"
+  currentAlgorithm: "Quick Sort",
+  runContext: null
 };
 
 const elements = {
@@ -39,6 +40,7 @@ const elements = {
   rangeMax: document.getElementById("rangeMax"),
   manualArray: document.getElementById("manualArray"),
   generateBtn: document.getElementById("generateBtn"),
+  shuffleBtn: document.getElementById("shuffleBtn"),
   applyManualBtn: document.getElementById("applyManualBtn"),
   algorithmSelect: document.getElementById("algorithmSelect"),
   playBtn: document.getElementById("playBtn"),
@@ -72,6 +74,9 @@ async function waitIfPaused() {
 async function step(multiplier = 1) {
   await waitIfPaused();
   const duration = Math.max(0, state.delay * multiplier);
+  if (state.runContext && duration > 0) {
+    state.runContext.sleeps += 1;
+  }
   if (duration > 0) {
     await sleep(duration);
   }
@@ -87,6 +92,71 @@ function logToConsole(message, type = "info") {
 
 function clearConsole() {
   elements.consoleOutput.innerHTML = "";
+}
+
+function createRunContext(label, source) {
+  return {
+    label,
+    source,
+    startedAt: performance.now(),
+    compares: 0,
+    swaps: 0,
+    writes: 0,
+    marks: 0,
+    sleeps: 0,
+    logs: 0,
+    milestones: new Set()
+  };
+}
+
+function beginRun(label, source) {
+  state.runContext = createRunContext(label, source);
+  logToConsole(`Starting ${label} via ${source}.`, "info");
+}
+
+function finishRun(status, extraMessage = "") {
+  if (!state.runContext) {
+    return;
+  }
+
+  const elapsedMs = Math.round(performance.now() - state.runContext.startedAt);
+  const summary = [
+    `status=${status}`,
+    `time=${elapsedMs}ms`,
+    `comparisons=${state.runContext.compares}`,
+    `swaps=${state.runContext.swaps}`,
+    `writes=${state.runContext.writes}`,
+    `marks=${state.runContext.marks}`,
+    `sleeps=${state.runContext.sleeps}`,
+    `logs=${state.runContext.logs}`
+  ];
+
+  if (extraMessage) {
+    summary.push(extraMessage);
+  }
+
+  logToConsole(`${state.runContext.label} summary: ${summary.join(" | ")}`, status === "completed" ? "success" : "error");
+  state.runContext = null;
+}
+
+function trackMetric(metric, amount = 1) {
+  if (!state.runContext) {
+    return;
+  }
+
+  state.runContext[metric] += amount;
+  const totalOps = state.runContext.compares + state.runContext.swaps + state.runContext.writes;
+  const checkpoints = [25, 100, 250, 500, 1000, 2000, 5000];
+
+  for (const checkpoint of checkpoints) {
+    if (totalOps >= checkpoint && !state.runContext.milestones.has(checkpoint)) {
+      state.runContext.milestones.add(checkpoint);
+      logToConsole(
+        `${state.runContext.label}: ${checkpoint}+ ops reached (cmp=${state.runContext.compares}, swp=${state.runContext.swaps}, wrt=${state.runContext.writes}).`,
+        "info"
+      );
+    }
+  }
 }
 
 function clamp(value, min, max) {
@@ -139,6 +209,19 @@ function renderBars() {
   });
 }
 
+function syncArrayMutations(previousArray) {
+  const maxLength = Math.max(previousArray.length, state.array.length);
+
+  for (let i = 0; i < maxLength; i += 1) {
+    if (previousArray[i] !== state.array[i] || i >= previousArray.length || i >= state.array.length) {
+      state.writing.add(i);
+      trackMetric("writes");
+    }
+  }
+
+  renderBars();
+}
+
 function resetHighlights() {
   state.active.clear();
   state.writing.clear();
@@ -166,6 +249,25 @@ function generateRandomArray() {
 
   const array = Array.from({ length: size }, () => randomInt(min, max));
   setArray(array);
+}
+
+function shuffleCurrentArray() {
+  if (state.sorting) {
+    return;
+  }
+  if (state.array.length < 2) {
+    logToConsole("Need at least two values to shuffle the current array.", "error");
+    return;
+  }
+
+  const shuffled = state.array.slice();
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  setArray(shuffled);
+  logToConsole("Current array order shuffled without changing its values.", "info");
 }
 
 function applyManualArray() {
@@ -200,6 +302,7 @@ function setControlsDisabled(disabled) {
     "rangeMax",
     "manualArray",
     "generateBtn",
+    "shuffleBtn",
     "applyManualBtn",
     "algorithmSelect",
     "runCustomBtn"
@@ -228,6 +331,7 @@ async function flash(indices, type = "active", multiplier = 1) {
 }
 
 async function compare(i, j) {
+  trackMetric("compares");
   state.active.add(i);
   state.active.add(j);
   renderBars();
@@ -245,6 +349,7 @@ async function compareValues(a, b) {
 }
 
 async function swap(i, j) {
+  trackMetric("swaps");
   state.active.add(i);
   state.active.add(j);
   renderBars();
@@ -258,6 +363,7 @@ async function swap(i, j) {
 }
 
 async function write(index, value) {
+  trackMetric("writes");
   state.writing.add(index);
   state.array[index] = value;
   renderBars();
@@ -267,6 +373,7 @@ async function write(index, value) {
 }
 
 async function markSorted(index) {
+  trackMetric("marks");
   state.sorted.add(index);
   renderBars();
   await step(0.18);
@@ -757,6 +864,7 @@ const algorithms = {
 async function runAlgorithm(algorithmName) {
   if (state.sorting) {
     state.paused = false;
+    logToConsole(`Resuming ${state.currentAlgorithm}.`, "info");
     updateStatus(`Resuming ${state.currentAlgorithm}...`);
     return;
   }
@@ -769,7 +877,7 @@ async function runAlgorithm(algorithmName) {
   state.currentAlgorithm = algorithmName;
   resetHighlights();
   clearConsole();
-  logToConsole(`Running ${algorithmName}.`, "info");
+  beginRun(algorithmName, "built-in algorithm");
   updateStatus(`Running ${algorithmName}...`);
   setControlsDisabled(true);
 
@@ -782,9 +890,11 @@ async function runAlgorithm(algorithmName) {
     await markAllSorted();
     updateStatus(`${algorithmName} completed.`);
     logToConsole(`${algorithmName} completed successfully.`, "success");
+    finishRun("completed");
   } catch (error) {
     updateStatus(`${algorithmName} stopped with an error.`);
     logToConsole(error.message, "error");
+    finishRun("failed", error.message);
   } finally {
     state.sorting = false;
     state.paused = false;
@@ -801,11 +911,13 @@ function transformExpression(expression) {
     .replace(/\bFalse\b/g, "false")
     .replace(/\bNone\b/g, "null")
     .replace(/\blen\(/g, "len(")
+    .replace(/(\w+)\.append\(/g, "$1.push(")
     .replace(/\bcompare\(/g, "await compare(")
     .replace(/\bswap\(/g, "await swap(")
     .replace(/\bwrite\(/g, "await write(")
     .replace(/\bmark_sorted\(/g, "await markSorted(")
-    .replace(/\bsleep\(/g, "await sleep(");
+    .replace(/\bsleep\(/g, "await sleep(")
+    .replace(/\bprint\(/g, "log(");
 }
 
 function compilePythonLike(source) {
@@ -834,47 +946,65 @@ function compilePythonLike(source) {
     }
     const indent = spaces / 4;
     const trimmed = sanitizedLine.trim();
-    closeToIndent(indent);
+
+    if (/^(elif|else)\b/.test(trimmed)) {
+      const lastFrame = stack[stack.length - 1];
+      if (!lastFrame || lastFrame.type !== "block") {
+        throw new Error(`Compiler Error on line ${lineNumber + 1}: '${trimmed.split(":")[0]}' has no matching if-block.`);
+      }
+      stack.pop();
+      output.push(`${"    ".repeat(stack.length)}}`);
+    } else {
+      closeToIndent(indent);
+    }
+
     const pad = "    ".repeat(indent);
+
+    if (/^def\s+\w+\s*\(.*\):$/.test(trimmed)) {
+      const [, functionName, args] = trimmed.match(/^def\s+(\w+)\s*\((.*)\):$/);
+      output.push(`${pad}async function ${functionName}(${args}) {`);
+      stack.push({ type: "block" });
+      continue;
+    }
 
     if (/^for\s+\w+\s+in\s+range\((.*)\):$/.test(trimmed)) {
       const [, variable, args] = trimmed.match(/^for\s+(\w+)\s+in\s+range\((.*)\):$/);
       output.push(`${pad}for (const ${variable} of range(${args})) {`);
-      stack.push("block");
+      stack.push({ type: "block" });
       continue;
     }
 
     if (/^for\s+\w+\s+in\s+.+:$/.test(trimmed)) {
       const [, variable, iterable] = trimmed.match(/^for\s+(\w+)\s+in\s+(.+):$/);
       output.push(`${pad}for (const ${variable} of ${transformExpression(iterable)}) {`);
-      stack.push("block");
+      stack.push({ type: "block" });
       continue;
     }
 
     if (/^while\s+.+:$/.test(trimmed)) {
       const expression = trimmed.slice(6, -1);
       output.push(`${pad}while (${transformExpression(expression)}) {`);
-      stack.push("block");
+      stack.push({ type: "block" });
       continue;
     }
 
     if (/^if\s+.+:$/.test(trimmed)) {
       const expression = trimmed.slice(3, -1);
       output.push(`${pad}if (${transformExpression(expression)}) {`);
-      stack.push("block");
+      stack.push({ type: "block" });
       continue;
     }
 
     if (/^elif\s+.+:$/.test(trimmed)) {
       const expression = trimmed.slice(5, -1);
       output.push(`${pad}else if (${transformExpression(expression)}) {`);
-      stack.push("block");
+      stack.push({ type: "block" });
       continue;
     }
 
     if (trimmed === "else:") {
       output.push(`${pad}else {`);
-      stack.push("block");
+      stack.push({ type: "block" });
       continue;
     }
 
@@ -882,9 +1012,7 @@ function compilePythonLike(source) {
       throw new Error(`Compiler Error on line ${lineNumber + 1}: unsupported block syntax.`);
     }
 
-    const statement = transformExpression(trimmed)
-      .replace(/\bprint\(/g, "log(")
-      .replace(/\bmark_sorted\(/g, "await markSorted(");
+    const statement = transformExpression(trimmed);
 
     output.push(`${pad}${statement};`);
   }
@@ -934,6 +1062,8 @@ async function runCustomCode() {
 
   resetHighlights();
   clearConsole();
+  state.currentAlgorithm = "Custom Python";
+  beginRun("Custom Python", "compiler");
   logToConsole("Compiling custom Python-style code...", "info");
   updateStatus("Running custom Python-style code...");
   setControlsDisabled(true);
@@ -941,6 +1071,7 @@ async function runCustomCode() {
   state.paused = false;
 
   try {
+    const before = state.array.slice();
     const compiledSource = compilePythonLike(elements.codeEditor.value);
     const factory = new Function(compiledSource);
     const executeCustom = factory();
@@ -951,17 +1082,28 @@ async function runCustomCode() {
       write,
       markSorted,
       sleep,
-      log: (message) => logToConsole(String(message), "info"),
+      log: (message) => {
+        if (state.runContext) {
+          state.runContext.logs += 1;
+        }
+        logToConsole(String(message), "info");
+      },
       range,
       len
     });
+    syncArrayMutations(before);
+    await step(0.4);
+    state.writing.clear();
+    renderBars();
     await markAllSorted();
     logToConsole("Custom code executed successfully.", "success");
     updateStatus("Custom sandbox run completed.");
+    finishRun("completed");
   } catch (error) {
     const prefix = /Compiler Error/.test(error.message) ? "" : "Compiler Error: ";
     logToConsole(`${prefix}${error.message}`, "error");
     updateStatus("Custom sandbox failed.");
+    finishRun("failed", error.message);
   } finally {
     state.sorting = false;
     state.paused = false;
@@ -970,6 +1112,7 @@ async function runCustomCode() {
 }
 
 elements.generateBtn.addEventListener("click", generateRandomArray);
+elements.shuffleBtn.addEventListener("click", shuffleCurrentArray);
 elements.applyManualBtn.addEventListener("click", applyManualArray);
 elements.playBtn.addEventListener("click", () => runAlgorithm(elements.algorithmSelect.value));
 elements.pauseBtn.addEventListener("click", () => {
@@ -978,6 +1121,7 @@ elements.pauseBtn.addEventListener("click", () => {
     return;
   }
   state.paused = !state.paused;
+  logToConsole(state.paused ? `Paused ${state.currentAlgorithm || "current run"}.` : `Resuming ${state.currentAlgorithm || "current run"}.`, "info");
   updateStatus(state.paused ? `Paused ${state.currentAlgorithm || "process"}.` : `Resuming ${state.currentAlgorithm || "process"}...`);
 });
 elements.runCustomBtn.addEventListener("click", runCustomCode);

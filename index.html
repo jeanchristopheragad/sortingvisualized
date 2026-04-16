@@ -38,6 +38,7 @@
             </div>
           </div>
           <button id="generateBtn" class="btn-primary">Generate Random Array</button>
+          <button id="shuffleBtn" class="btn-neutral">Shuffle Current Values</button>
           <div class="field">
             <label for="manualArray">Manual Array (comma-separated)</label>
             <input id="manualArray" type="text" placeholder="18, 4, 29, 11, 7, 33" />
@@ -89,18 +90,22 @@
           <div>
             <h2 class="section-title">Custom Python Sandbox</h2>
             <p class="hint">
-              Use a Python-like subset with indentation, `for i in range(...)`, `while`, `if`, `elif`, `else`, `swap(i, j)`, `compare(i, j)`, `write(i, value)`, `mark_sorted(i)`, `sleep(ms)`, `log(...)`, and direct `arr[index]` access.
+              Use a Python-like subset with indentation, variables, `def` functions, `return`, `for i in range(...)`, `while`, `if`, `elif`, `else`, `arr[index]` reads and writes, `.append()`, `.pop()`, `len(...)`, `sleep(ms)`, `log(...)`, and visualization helpers when you want explicit animation control.
             </p>
           </div>
 
-          <textarea id="codeEditor" spellcheck="false">n = len(arr)
-for i in range(n):
-    for j in range(0, n - i - 1):
+          <textarea id="codeEditor" spellcheck="false">def bubble_pass(limit):
+    for j in range(0, limit):
         if compare(j, j + 1) > 0:
             swap(j, j + 1)
 
+n = len(arr)
+for i in range(n):
+    bubble_pass(n - i - 1)
+
 for i in range(n):
     mark_sorted(i)
+
 log("Custom code finished.")</textarea>
 
           <div class="editor-actions">

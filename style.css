@@ -242,11 +242,11 @@ button:disabled {
 
 .visualizer-canvas {
   position: relative;
-  min-height: 340px;
+  min-height: 380px;
   border-radius: 18px;
   background:
     linear-gradient(to top, rgba(148, 163, 184, 0.08) 1px, transparent 1px) 0 0 / 100% 20%,
-    linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.96));
+        linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.96));
   overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.14);
 }
@@ -256,7 +256,7 @@ button:disabled {
   display: flex;
   align-items: end;
   gap: clamp(2px, 0.35vw, 7px);
-  padding: 1rem;
+  padding: 3.2rem 1rem 1rem;
 }
 
 .bar-wrap {
@@ -280,12 +280,15 @@ button:disabled {
 
 .bar-label {
   position: absolute;
-  bottom: calc(100% + 6px);
+  bottom: calc(100% + 10px);
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.72rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   color: #dbeafe;
-  opacity: 0.82;
+  text-shadow: 0 1px 10px rgba(2, 6, 23, 0.8);
+  opacity: 0.95;
   pointer-events: none;
   white-space: nowrap;
 }
