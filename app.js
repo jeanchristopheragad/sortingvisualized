@@ -1193,8 +1193,8 @@ async function runAlgorithm(algorithmName) {
   }
 }
 
-function transformExpression(expression) {
-  return expression
+function transformExpression(expression, userFunctions = new Set()) {
+  let transformed = expression
     .replace(/\band\b/g, "&&")
     .replace(/\bor\b/g, "||")
     .replace(/\bnot\b/g, "!")
@@ -1209,12 +1209,20 @@ function transformExpression(expression) {
     .replace(/\bmark_sorted\(/g, "await markSorted(")
     .replace(/\bsleep\(/g, "await sleep(")
     .replace(/\bprint\(/g, "log(");
+
+  for (const functionName of userFunctions) {
+    const pattern = new RegExp(`(^|[^\\w.])${functionName}\\(`, "g");
+    transformed = transformed.replace(pattern, `$1await ${functionName}(`);
+  }
+
+  return transformed;
 }
 
 function compilePythonLike(source) {
   const lines = source.replace(/\t/g, "    ").split("\n");
   const output = [];
   const stack = [];
+  const userFunctions = new Set();
   const scopeStack = [
     new Set(["arr", "compare", "swap", "write", "markSorted", "sleep", "log", "range", "len"])
   ];
@@ -1259,6 +1267,7 @@ function compilePythonLike(source) {
 
     if (/^def\s+\w+\s*\(.*\):$/.test(trimmed)) {
       const [, functionName, args] = trimmed.match(/^def\s+(\w+)\s*\((.*)\):$/);
+      userFunctions.add(functionName);
       output.push(`${pad}async function ${functionName}(${args}) {`);
       const functionScope = new Set();
       args
@@ -1280,28 +1289,28 @@ function compilePythonLike(source) {
 
     if (/^for\s+\w+\s+in\s+.+:$/.test(trimmed)) {
       const [, variable, iterable] = trimmed.match(/^for\s+(\w+)\s+in\s+(.+):$/);
-      output.push(`${pad}for (const ${variable} of ${transformExpression(iterable)}) {`);
+      output.push(`${pad}for (const ${variable} of ${transformExpression(iterable, userFunctions)}) {`);
       stack.push({ type: "block" });
       continue;
     }
 
     if (/^while\s+.+:$/.test(trimmed)) {
       const expression = trimmed.slice(6, -1);
-      output.push(`${pad}while (${transformExpression(expression)}) {`);
+      output.push(`${pad}while (${transformExpression(expression, userFunctions)}) {`);
       stack.push({ type: "block" });
       continue;
     }
 
     if (/^if\s+.+:$/.test(trimmed)) {
       const expression = trimmed.slice(3, -1);
-      output.push(`${pad}if (${transformExpression(expression)}) {`);
+      output.push(`${pad}if (${transformExpression(expression, userFunctions)}) {`);
       stack.push({ type: "block" });
       continue;
     }
 
     if (/^elif\s+.+:$/.test(trimmed)) {
       const expression = trimmed.slice(5, -1);
-      output.push(`${pad}else if (${transformExpression(expression)}) {`);
+      output.push(`${pad}else if (${transformExpression(expression, userFunctions)}) {`);
       stack.push({ type: "block" });
       continue;
     }
@@ -1316,7 +1325,7 @@ function compilePythonLike(source) {
       throw new Error(`Compiler Error on line ${lineNumber + 1}: unsupported block syntax.`);
     }
 
-    let statement = transformExpression(trimmed);
+    let statement = transformExpression(trimmed, userFunctions);
     const assignmentMatch = trimmed.match(/^([A-Za-z_]\w*)\s*=(?!=)(.+)$/);
     if (assignmentMatch) {
       const variableName = assignmentMatch[1];

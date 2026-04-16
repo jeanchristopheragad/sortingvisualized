@@ -54,10 +54,6 @@
             <label for="algorithmSelect">Choose Sorting Algorithm</label>
             <select id="algorithmSelect"></select>
           </div>
-          <div class="transport-row">
-            <button id="playBtn" class="btn-success">Play</button>
-            <button id="pauseBtn" class="btn-warning">Pause</button>
-          </div>
           <div class="field">
             <label for="speedSlider">Speed: <span id="speedValue">60 ms</span></label>
             <input id="speedSlider" type="range" min="5" max="250" value="60" />
@@ -73,12 +69,18 @@
               <h2 class="section-title">Visualizer</h2>
               <div class="status-text" id="statusText">Ready. Generate an array or start sorting.</div>
             </div>
-            <div class="legend">
-              <div class="legend-item"><span class="swatch" style="background:#2563eb"></span>Default</div>
-              <div class="legend-item"><span class="swatch" style="background:#dc2626"></span>Comparing / Swapping</div>
-              <div class="legend-item"><span class="swatch" style="background:#f97316"></span>Writing</div>
-              <div class="legend-item"><span class="swatch" style="background:#16a34a"></span>Sorted</div>
+            <div class="visualizer-actions">
+              <button id="playBtn" class="btn-success">Run Algorithm</button>
+              <button id="pauseBtn" class="btn-warning">Pause</button>
+              <button id="runCustomBtn" class="btn-primary">Run Custom Code</button>
             </div>
+          </div>
+
+          <div class="legend">
+            <div class="legend-item"><span class="swatch" style="background:#2563eb"></span>Default</div>
+            <div class="legend-item"><span class="swatch" style="background:#dc2626"></span>Comparing / Swapping</div>
+            <div class="legend-item"><span class="swatch" style="background:#f97316"></span>Writing</div>
+            <div class="legend-item"><span class="swatch" style="background:#16a34a"></span>Sorted</div>
           </div>
 
           <div class="visualizer-canvas">
@@ -151,7 +153,6 @@ for i in range(n):
 log("Custom code finished.")</textarea>
 
           <div class="editor-actions">
-            <button id="runCustomBtn" class="btn-primary">Run Custom Code</button>
             <span class="status-text">Compiler errors and runtime messages appear in the console below.</span>
           </div>
 
